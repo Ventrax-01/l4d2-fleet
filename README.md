@@ -89,8 +89,9 @@ Re-run the same command any time; the role is idempotent and only changes what d
 
 ## Configuration
 
-Override anything from `roles/l4d2_fleet/defaults/main.yml` in `group_vars/all.yml`
-(or per host). The variables you'll actually touch:
+Your settings go in `group_vars/all.yml` (copy it from `group_vars/all.yml.sample`; it's
+gitignored). Anything you leave out falls back to `roles/l4d2_fleet/defaults/main.yml`. The
+variables you'll actually touch:
 
 | Variable          | Default              | Notes                                                   |
 |-------------------|----------------------|---------------------------------------------------------|
@@ -103,11 +104,11 @@ Override anything from `roles/l4d2_fleet/defaults/main.yml` in `group_vars/all.y
 | `public`          | `1`                  | Relax `sv_pure` so players with custom files can join.  |
 | `steam_group`     | *(empty)*            | Steam group ID(s) to list the servers under; empty = none.|
 | `steam_group_exclusive` | `0`            | `1` = only members of `steam_group` can connect.        |
-| `admins`          | *(one root admin)*   | List seeded into `admins_simple.ini` — see below.       |
+| `admins`          | *(placeholder)*      | SteamIDs seeded into `admins_simple.ini`; set yours — see below. |
 | `steam_user`      | `steam`              | Account that owns and runs the servers.                 |
 | `install_dir`     | `/home/steam/l4d2`   | Shared game install.                                    |
 | `game_ip`         | *(auto)*             | A2S target for the exporter; empty = auto-detect.       |
-| `rcon_password`   | `change-me`          | Loopback only. Put the real one in an ansible-vault file.|
+| `rcon_password`   | `change-me`          | Loopback only. Set the real one in your gitignored `group_vars/all.yml`. |
 | `with_monitoring` | `true`               | Install and wire up Prometheus/Grafana.                 |
 | `with_logs`       | `true`               | Ship journald logs to Loki and show them in Grafana.    |
 | `loki_retention`  | `168h`               | How long Loki keeps the logs.                           |
@@ -202,12 +203,12 @@ whole fleet, `{job="l4d2", instance="3"}` for one.
 ```
 l4d2-fleet/
 ├── playbook.yml · inventory.ini · ansible.cfg
-├── group_vars/all.yml              # your settings
+├── group_vars/all.yml.sample      # copy to all.yml (gitignored) and edit
 └── roles/l4d2_fleet/
     ├── defaults/main.yml           # every variable + its default
     ├── tasks/                      # dependencies · game · zonemod · fleet · monitoring
     ├── handlers/main.yml           # service restarts
-    ├── templates/                  # fleet.env, l4d2@.service
+    ├── templates/                  # fleet.env, l4d2@.service, loki/promtail configs
     └── files/
         ├── l4d2-run.sh             # launcher
         ├── l4d2_exporter.py        # A2S → Prometheus exporter
