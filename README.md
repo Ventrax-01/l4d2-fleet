@@ -69,7 +69,8 @@ flowchart LR
 ```bash
 git clone git@github.com-personal:Ventrax-01/l4d2-fleet.git
 cd l4d2-fleet
-$EDITOR group_vars/all.yml          # set name, count, rcon password
+cp group_vars/all.yml.sample group_vars/all.yml   # your settings (gitignored)
+$EDITOR group_vars/all.yml          # set name, count, rcon password, admins
 ansible-playbook playbook.yml --ask-become-pass
 ```
 
@@ -119,8 +120,10 @@ admins:
   - { steamid: "STEAM_1:1:87654321", flags: "cdef" }   # kick / ban / unban / slay
 ```
 
-Keep `rcon_password` and anything else sensitive in an `ansible-vault` file rather than
-committing it.
+`group_vars/all.yml` is gitignored — copy it from `group_vars/all.yml.sample` and put your
+real values (rcon password, admin SteamIDs, server name) there. They stay out of the repo
+and `git status` stays clean. If you'd rather version your secrets, keep them in an
+`ansible-vault` file instead.
 
 ## How it works
 

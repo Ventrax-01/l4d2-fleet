@@ -1,6 +1,7 @@
-# Secrets — never commit (use ansible-vault)
+# Secrets / personal config — never commit (copy from the .sample instead)
 *vault*
 group_vars/*secret*
+group_vars/all.yml
 *.pem
 # Ansible retry/cache
 *.retry
