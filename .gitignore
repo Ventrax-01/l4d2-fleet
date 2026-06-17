@@ -1,0 +1,9 @@
+# Secrets — never commit (use ansible-vault)
+*vault*
+group_vars/*secret*
+*.pem
+# Ansible retry/cache
+*.retry
+.ansible/
+# Local game files (downloaded at provision time)
+left4dead2/

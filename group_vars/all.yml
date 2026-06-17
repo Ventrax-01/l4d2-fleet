@@ -1,0 +1,8 @@
+---
+# Things you'll usually change. Everything else lives in
+# roles/l4d2_fleet/defaults/main.yml.
+base_name: "My ZoneMod Server"
+server_count: 4
+
+# Keep real secrets in an ansible-vault file, not here.
+rcon_password: "change-me"

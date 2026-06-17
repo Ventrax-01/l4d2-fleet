@@ -1,0 +1,23 @@
+---
+# Fleet identity and size
+base_name: "My ZoneMod Server"   # in-game name; the launcher appends " #N"
+server_count: 4                  # how many servers to run
+port_base: 6032                  # game port = port_base + N  (server #1 -> 6033/udp)
+
+# Gameplay
+gamemode: versus
+start_map: c1m1_hotel
+tickrate: 100
+maxplayers: 32
+public: 1                        # 1 = relax sv_pure so custom client files are allowed
+
+# Host
+steam_user: steam
+install_dir: /home/steam/l4d2
+game_ip: ""                      # A2S target for the exporter; empty = auto-detect
+
+# RCON (loopback only)
+rcon_password: "change-me"
+
+# Monitoring stack (Prometheus + node_exporter + Grafana)
+with_monitoring: true

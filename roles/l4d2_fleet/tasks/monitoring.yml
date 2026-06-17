@@ -1,0 +1,78 @@
+---
+- name: Install Prometheus and node_exporter
+  ansible.builtin.apt:
+    name:
+      - prometheus
+      - prometheus-node-exporter
+    update_cache: true
+    state: present
+
+- name: Install the L4D2 exporter
+  ansible.builtin.copy:
+    src: l4d2_exporter.py
+    dest: /opt/l4d2-fleet/l4d2_exporter.py
+    mode: "0755"
+
+- name: Install the L4D2 exporter service
+  ansible.builtin.copy:
+    src: l4d2-exporter.service
+    dest: /etc/systemd/system/l4d2-exporter.service
+    mode: "0644"
+  notify: reload systemd
+
+- name: Start the L4D2 exporter
+  ansible.builtin.systemd:
+    name: l4d2-exporter
+    enabled: true
+    state: started
+    daemon_reload: true
+
+- name: Register the scrape targets in Prometheus
+  ansible.builtin.blockinfile:
+    path: /etc/prometheus/prometheus.yml
+    marker: "# {mark} l4d2-fleet"
+    block: "{{ lookup('file', 'monitoring/prometheus/scrape-jobs.yml') }}"
+  notify: restart prometheus
+
+- name: Add the Grafana apt key
+  ansible.builtin.get_url:
+    url: https://apt.grafana.com/gpg.key
+    dest: /etc/apt/keyrings/grafana.asc
+    mode: "0644"
+
+- name: Add the Grafana apt repository
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/etc/apt/keyrings/grafana.asc] https://apt.grafana.com stable main"
+    filename: grafana
+
+- name: Install Grafana
+  ansible.builtin.apt:
+    name: grafana
+    update_cache: true
+    state: present
+
+- name: Provision the Grafana data source
+  ansible.builtin.copy:
+    src: monitoring/grafana/datasources/prometheus.yml
+    dest: /etc/grafana/provisioning/datasources/prometheus.yml
+    mode: "0644"
+
+- name: Provision the Grafana dashboard provider
+  ansible.builtin.copy:
+    src: monitoring/grafana/dashboards/provider.yml
+    dest: /etc/grafana/provisioning/dashboards/provider.yml
+    mode: "0644"
+
+- name: Provision the fleet dashboard
+  ansible.builtin.copy:
+    src: monitoring/grafana/dashboards/l4d2-fleet.json
+    dest: /var/lib/grafana/dashboards/l4d2-fleet.json
+    owner: grafana
+    group: grafana
+    mode: "0644"
+
+- name: Start Grafana
+  ansible.builtin.systemd:
+    name: grafana-server
+    enabled: true
+    state: started

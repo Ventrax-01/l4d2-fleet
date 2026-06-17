@@ -1,0 +1,59 @@
+---
+- name: server.cfg — let the launcher own the hostname
+  ansible.builtin.replace:
+    path: "{{ install_dir }}/left4dead2/cfg/server.cfg"
+    regexp: '^hostname '
+    replace: '//hostname '
+
+- name: server.cfg — rcon password
+  ansible.builtin.lineinfile:
+    path: "{{ install_dir }}/left4dead2/cfg/server.cfg"
+    regexp: '^rcon_password '
+    line: 'rcon_password "{{ rcon_password }}"'
+
+- name: server.cfg — public-server toggles
+  ansible.builtin.lineinfile:
+    path: "{{ install_dir }}/left4dead2/cfg/server.cfg"
+    regexp: "^{{ item.key }} "
+    line: '{{ item.key }} "{{ item.value }}"'
+  loop:
+    - { key: sv_pure, value: "0" }
+    - { key: sv_pure_kick_clients, value: "0" }
+    - { key: sv_steamgroup_exclusive, value: "0" }
+  when: public | int == 1
+
+- name: Create fleet directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - /opt/l4d2-fleet
+    - /etc/l4d2-fleet
+
+- name: Install fleet configuration
+  ansible.builtin.template:
+    src: fleet.env.j2
+    dest: /etc/l4d2-fleet/fleet.env
+    mode: "0640"
+
+- name: Install the launcher
+  ansible.builtin.copy:
+    src: l4d2-run.sh
+    dest: /opt/l4d2-fleet/l4d2-run.sh
+    mode: "0755"
+
+- name: Install the systemd template unit
+  ansible.builtin.template:
+    src: l4d2@.service.j2
+    dest: /etc/systemd/system/l4d2@.service
+    mode: "0644"
+  notify: reload systemd
+
+- name: Start and enable the servers
+  ansible.builtin.systemd:
+    name: "l4d2@{{ item }}"
+    enabled: true
+    state: started
+    daemon_reload: true
+  loop: "{{ range(1, server_count | int + 1) | list }}"

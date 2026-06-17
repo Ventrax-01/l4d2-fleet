@@ -1,0 +1,53 @@
+{
+  "uid": "l4d2-fleet",
+  "title": "L4D2 Fleet",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "time": { "from": "now-3h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Players per server",
+      "gridPos": { "h": 8, "w": 16, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "expr": "l4d2_players", "legendFormat": "#{{instance}} :{{port}}" }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Servers up",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [ { "refId": "A", "expr": "sum(l4d2_up)" } ],
+      "fieldConfig": { "defaults": { "unit": "none" } }
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Network throughput (Mbps)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "expr": "rate(node_network_transmit_bytes_total{device!~\"lo|docker.*|veth.*\"}[5m])*8/1e6", "legendFormat": "out {{device}}" },
+        { "refId": "B", "expr": "rate(node_network_receive_bytes_total{device!~\"lo|docker.*|veth.*\"}[5m])*8/1e6", "legendFormat": "in {{device}}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "Mbits" } }
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "CPU & RAM (%)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "expr": "100-(avg(rate(node_cpu_seconds_total{mode=\"idle\"}[5m]))*100)", "legendFormat": "CPU %" },
+        { "refId": "B", "expr": "(1-node_memory_MemAvailable_bytes/node_memory_MemTotal_bytes)*100", "legendFormat": "RAM %" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percent", "max": 100 } }
+    }
+  ]
+}
