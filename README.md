@@ -78,16 +78,33 @@ a fifth server is just `systemctl enable --now l4d2@5`.
 The exporter queries each server over Steam's A2S protocol and exposes per-instance
 metrics for Prometheus, e.g. `l4d2_players{instance="3",port="6035"} 4`.
 
-```
-                       ┌───────────────────── Ubuntu host ─────────────────────┐
-  players (udp)        │   systemd: l4d2@1 … l4d2@N  (one shared install)        │
-   6033 ─┼──► l4d2@1 ──┤        ├─► srcds :6033  #1                              │
-   6034 ─┼──► l4d2@2 ──┤        ├─► srcds :6034  #2     ┌── Prometheus :9090 ──┐ │
-   6035 ─┼──► l4d2@3 ──┤        ├─► srcds :6035  #3 ◄A2S┤ node_exporter :9100  │ │
-   6036 ─┼──► l4d2@4 ──┤        └─► srcds :6036  #4     │ l4d2_exporter :9101  │ │
-        │              │                               └──────────┬───────────┘ │
-        │              │                                    Grafana :3000        │
-        └──────────────┴────────────────────────────────────────┴───────────────┘
+```mermaid
+flowchart LR
+    P["players · UDP"]
+
+    subgraph host["Ubuntu host · one shared game install"]
+        direction LR
+        T["systemd template<br/>l4d2@1 … l4d2@N"]
+        T --> S1["srcds #1 · :6033"]
+        T --> S2["srcds #2 · :6034"]
+        T --> S3["srcds #3 · :6035"]
+        T --> S4["srcds #4 · :6036"]
+
+        subgraph mon["monitoring"]
+            direction TB
+            NE["node_exporter · :9100"]
+            LE["l4d2_exporter · :9101"]
+            PR["Prometheus · :9090"]
+            GR["Grafana · :3000"]
+            NE --> PR
+            LE --> PR
+            PR --> GR
+        end
+
+        LE -. A2S .-> S1
+    end
+
+    P --> S1 & S2 & S3 & S4
 ```
 
 ## Day to day
