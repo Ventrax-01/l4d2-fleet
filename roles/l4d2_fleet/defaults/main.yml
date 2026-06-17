@@ -31,3 +31,8 @@ rcon_password: "change-me"
 
 # Monitoring stack (Prometheus + node_exporter + Grafana)
 with_monitoring: true
+
+# Logs: ship each server's journald output to Loki and show it in Grafana.
+# Label-driven, so it works for however many servers you run (no hardcoding).
+with_logs: true
+loki_retention: "168h"           # how long Loki keeps logs (7 days)

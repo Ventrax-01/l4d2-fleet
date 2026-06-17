@@ -80,7 +80,7 @@
     { "id": 21, "type": "timeseries", "title": "Memory per server", "gridPos": { "h": 8, "w": 12, "x": 12, "y": 15 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [ { "refId": "A", "expr": "l4d2_memory_bytes{instance=~\"$server\"}", "legendFormat": "#{{instance}}" } ],
-      "fieldConfig": { "defaults": { "unit": "bytes", "custom": { "drawStyle": "line", "fillOpacity": 10 } } } },
+      "fieldConfig": { "defaults": { "unit": "bytes", "min": 0, "custom": { "drawStyle": "line", "fillOpacity": 10 } } } },
 
     { "id": 103, "type": "row", "title": "Host resources", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 23 } },
 
@@ -115,6 +115,13 @@
       "targets": [ { "refId": "A", "expr": "l4d2_map_info{instance=~\"$server\"}", "format": "table", "instant": true } ],
       "transformations": [
         { "id": "organize", "options": { "excludeByName": { "Time": true, "Value": true, "__name__": true, "job": true }, "renameByName": { "instance": "server", "port": "port", "map": "map" } } }
-      ] }
+      ] },
+
+    { "id": 105, "type": "row", "title": "Logs", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 40 } },
+
+    { "id": 50, "type": "logs", "title": "Server logs (journald via Loki)", "gridPos": { "h": 12, "w": 24, "x": 0, "y": 41 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [ { "refId": "A", "expr": "{job=\"l4d2\", instance=~\"$server\"} | line_format \"#{{.instance}} {{__line__}}\"" } ],
+      "options": { "showTime": true, "showLabels": false, "wrapLogMessage": true, "prettifyLogMessage": false, "enableLogDetails": true, "dedupStrategy": "none", "sortOrder": "Descending" } }
   ]
 }

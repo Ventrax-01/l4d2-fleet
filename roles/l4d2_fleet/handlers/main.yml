@@ -12,3 +12,18 @@
   ansible.builtin.systemd:
     name: grafana-server
     state: restarted
+
+- name: restart loki
+  ansible.builtin.systemd:
+    name: loki
+    state: restarted
+
+- name: restart promtail
+  ansible.builtin.systemd:
+    name: promtail
+    state: restarted
+
+- name: restart journald
+  ansible.builtin.systemd:
+    name: systemd-journald
+    state: restarted

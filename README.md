@@ -108,6 +108,8 @@ Override anything from `roles/l4d2_fleet/defaults/main.yml` in `group_vars/all.y
 | `game_ip`         | *(auto)*             | A2S target for the exporter; empty = auto-detect.       |
 | `rcon_password`   | `change-me`          | Loopback only. Put the real one in an ansible-vault file.|
 | `with_monitoring` | `true`               | Install and wire up Prometheus/Grafana.                 |
+| `with_logs`       | `true`               | Ship journald logs to Loki and show them in Grafana.    |
+| `loki_retention`  | `168h`               | How long Loki keeps the logs.                           |
 
 `admins` is a list of SteamID + flags:
 
@@ -175,11 +177,22 @@ Config changes are edits to `group_vars/all.yml` followed by another
 | Prometheus       | `9090` | Time-series store + query UI                           |
 | node_exporter    | `9100` | CPU, RAM, disk, **network traffic**                    |
 | l4d2_exporter    | `9101` | `l4d2_up` / `l4d2_players` / `l4d2_map_info` per server |
-| Grafana          | `3000` | "L4D2 Fleet" dashboard (players, traffic, host health) |
+| Loki             | `3100` | Log store (localhost only)                             |
+| Promtail         | `9080` | Ships the journal to Loki                              |
+| Grafana          | `3000` | "L4D2 Fleet" dashboard (players, traffic, host health, logs) |
 
 A few queries: `l4d2_players` · `sum(l4d2_up)` (servers online) · outbound Mbps
 `rate(node_network_transmit_bytes_total[5m])*8/1e6`. These ports are not meant to be
 public — leave them on the LAN.
+
+### Logs
+
+With `with_logs` on, Promtail reads each server's journal and ships it to Loki, pulling
+the instance number out of the unit name (`l4d2@3.service` → `instance="3"`). The dashboard
+has a **Logs** row that reuses the same `$server` variable, so picking a server filters
+both its metrics and its logs — and it works for however many servers you run, since it's
+keyed on the label, not a fixed list. Query in Grafana's Explore: `{job="l4d2"}` for the
+whole fleet, `{job="l4d2", instance="3"}` for one.
 
 ## Project layout
 

@@ -76,3 +76,78 @@
     name: grafana-server
     enabled: true
     state: started
+
+# --- Logs: Loki + Promtail (journald -> Grafana) ---
+- name: Install Loki and Promtail
+  ansible.builtin.apt:
+    name:
+      - loki
+      - promtail
+    state: present
+  when: with_logs | bool
+
+- name: Make the systemd journal persistent
+  ansible.builtin.file:
+    path: /var/log/journal
+    state: directory
+    mode: "0755"
+  when: with_logs | bool
+  notify: restart journald
+
+- name: Let Promtail read the systemd journal
+  ansible.builtin.user:
+    name: promtail
+    groups: systemd-journal
+    append: true
+  when: with_logs | bool
+  notify: restart promtail
+
+- name: Create Loki and Promtail data directories
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.user }}"
+    group: "{{ item.user }}"
+    mode: "0755"
+  loop:
+    - { path: /var/lib/loki, user: loki }
+    - { path: /var/lib/promtail, user: promtail }
+  when: with_logs | bool
+
+- name: Configure Loki
+  ansible.builtin.template:
+    src: loki.yml.j2
+    dest: /etc/loki/config.yml
+    owner: loki
+    group: loki
+    mode: "0644"
+  when: with_logs | bool
+  notify: restart loki
+
+- name: Configure Promtail
+  ansible.builtin.template:
+    src: promtail.yml.j2
+    dest: /etc/promtail/config.yml
+    owner: promtail
+    group: promtail
+    mode: "0644"
+  when: with_logs | bool
+  notify: restart promtail
+
+- name: Provision the Loki data source
+  ansible.builtin.copy:
+    src: monitoring/grafana/datasources/loki.yml
+    dest: /etc/grafana/provisioning/datasources/loki.yml
+    mode: "0644"
+  when: with_logs | bool
+  notify: restart grafana
+
+- name: Start and enable Loki and Promtail
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+  loop:
+    - loki
+    - promtail
+  when: with_logs | bool
