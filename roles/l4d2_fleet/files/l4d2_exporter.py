@@ -1,26 +1,24 @@
 #!/usr/bin/env python3
 """Prometheus exporter for a fleet of L4D2 (Source engine) servers.
 
-Queries each server over the Steam A2S protocol and exposes per-instance
-metrics, labelled by instance and port:
+Exposes, per instance (labelled by ``instance`` and ``port``):
 
-    l4d2_up{instance,port}            1 if the server answered A2S, else 0
-    l4d2_players{instance,port}       current player count
-    l4d2_max_players{instance,port}   slot count
-    l4d2_bots{instance,port}          bot count
-    l4d2_map_info{instance,port,map}  1 (carries the current map as a label)
+    l4d2_up                 1 if the server answered A2S, else 0
+    l4d2_players            current player count
+    l4d2_max_players        slot count
+    l4d2_bots               bot count
+    l4d2_map_info{map}      1 (carries the current map as a label)
+    l4d2_memory_bytes       resident memory of the server   (systemd MemoryCurrent)
+    l4d2_cpu_seconds_total  cumulative CPU time of the server (systemd CPUUsageNSec)
 
-Configuration comes from the environment (see fleet.env):
-
-    PORT_BASE      base game port; server #N runs on PORT_BASE + N   (default 6032)
-    SERVER_COUNT   number of servers to scrape                       (default 4)
-    GAME_IP        A2S target; if empty, the host's primary IP is auto-detected
-                   (srcds does not reliably answer A2S on 127.0.0.1)
-    EXPORTER_PORT  HTTP port to expose /metrics on                   (default 9101)
+Player/map data comes from Steam's A2S protocol; per-server CPU/RAM from systemd's
+own per-unit accounting (no extra exporter needed). Configured from the environment
+(see fleet.env): PORT_BASE, SERVER_COUNT, GAME_IP, EXPORTER_PORT.
 """
 import http.server
 import os
 import socket
+import subprocess
 
 
 def primary_ip() -> str:
@@ -45,16 +43,16 @@ A2S_INFO = b"\xFF\xFF\xFF\xFF\x54Source Engine Query\x00"
 
 
 def query(port: int) -> dict:
-    """Return server info for a single instance, or {'up': 0} if unreachable."""
+    """Server info for a single instance via A2S, or {'up': 0} if unreachable."""
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.settimeout(2)
     try:
         s.sendto(A2S_INFO, (GAME_IP, port))
         data, _ = s.recvfrom(4096)
-        if data[4:5] == b"\x41":  # challenge — resend with the token appended
+        if data[4:5] == b"\x41":  # challenge — resend with the token
             s.sendto(A2S_INFO + data[5:9], (GAME_IP, port))
             data, _ = s.recvfrom(4096)
-        if data[4:5] == b"\x49":  # S2A_INFO reply
+        if data[4:5] == b"\x49":  # S2A_INFO
             rest = data[6:]
 
             def read_str(buf):
@@ -65,7 +63,6 @@ def query(port: int) -> dict:
             mapn, rest = read_str(rest)
             _folder, rest = read_str(rest)
             _game, rest = read_str(rest)
-            # rest: appid (2 bytes), players, max_players, bots
             return {"up": 1, "players": rest[2], "max": rest[3], "bots": rest[4], "map": mapn}
     except Exception:
         pass
@@ -74,12 +71,27 @@ def query(port: int) -> dict:
     return {"up": 0}
 
 
+def systemd_stats(inst: int):
+    """(memory_bytes, cpu_seconds) for l4d2@<inst>.service from systemd accounting."""
+    try:
+        out = subprocess.run(
+            ["/usr/bin/systemctl", "show", "l4d2@%d.service" % inst,
+             "-p", "MemoryCurrent", "-p", "CPUUsageNSec", "--value"],
+            capture_output=True, text=True, timeout=3,
+        ).stdout.split()
+        mem = int(out[0]) if len(out) > 0 and out[0].isdigit() else 0
+        cpu = int(out[1]) / 1e9 if len(out) > 1 and out[1].isdigit() else 0.0
+        return mem, cpu
+    except Exception:
+        return 0, 0.0
+
+
 class MetricsHandler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):  # noqa: N802
-        up, players, maxp, bots, infos = [], [], [], [], []
+        up, players, maxp, bots, infos, mem, cpu = [], [], [], [], [], [], []
         for inst, port in sorted(SERVERS.items()):
-            m = query(port)
             lbl = 'instance="%d",port="%d"' % (inst, port)
+            m = query(port)
             up.append("l4d2_up{%s} %d" % (lbl, m["up"]))
             if m["up"]:
                 players.append("l4d2_players{%s} %d" % (lbl, m["players"]))
@@ -87,19 +99,24 @@ class MetricsHandler(http.server.BaseHTTPRequestHandler):
                 bots.append("l4d2_bots{%s} %d" % (lbl, m["bots"]))
                 safe_map = m["map"].replace("\\", "").replace('"', "")
                 infos.append('l4d2_map_info{%s,map="%s"} 1' % (lbl, safe_map))
+            mbytes, cpusecs = systemd_stats(inst)
+            mem.append("l4d2_memory_bytes{%s} %d" % (lbl, mbytes))
+            cpu.append("l4d2_cpu_seconds_total{%s} %.3f" % (lbl, cpusecs))
         body = "\n".join(
             ["# TYPE l4d2_up gauge"] + up
             + ["# TYPE l4d2_players gauge"] + players
             + ["# TYPE l4d2_max_players gauge"] + maxp
             + ["# TYPE l4d2_bots gauge"] + bots
             + infos
+            + ["# TYPE l4d2_memory_bytes gauge"] + mem
+            + ["# TYPE l4d2_cpu_seconds_total counter"] + cpu
         ) + "\n"
         self.send_response(200)
         self.send_header("Content-Type", "text/plain; version=0.0.4")
         self.end_headers()
         self.wfile.write(body.encode())
 
-    def log_message(self, *args):  # silence per-request logging
+    def log_message(self, *args):
         pass
 
 
