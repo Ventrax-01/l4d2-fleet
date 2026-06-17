@@ -107,7 +107,6 @@
     path: "{{ item.path }}"
     state: directory
     owner: "{{ item.user }}"
-    group: "{{ item.user }}"
     mode: "0755"
   loop:
     - { path: /var/lib/loki, user: loki }
@@ -118,8 +117,6 @@
   ansible.builtin.template:
     src: loki.yml.j2
     dest: /etc/loki/config.yml
-    owner: loki
-    group: loki
     mode: "0644"
   when: with_logs | bool
   notify: restart loki
@@ -128,8 +125,6 @@
   ansible.builtin.template:
     src: promtail.yml.j2
     dest: /etc/promtail/config.yml
-    owner: promtail
-    group: promtail
     mode: "0644"
   when: with_logs | bool
   notify: restart promtail
