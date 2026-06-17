@@ -19,6 +19,8 @@ hand-configuring each one. Adding a server means bumping a number — the rest
 - Sets up monitoring — node_exporter for the host (CPU, RAM, network) and a small
   A2S exporter for the game (player count, current map, up/down) — and wires both
   into Prometheus with a Grafana dashboard.
+- Comes match-ready — ZoneMod auto-loads on the first connection, and a small bundled
+  SourceMod plugin lets root admins manage access in-game (`!admin add/list/delete`).
 
 ## Requirements
 

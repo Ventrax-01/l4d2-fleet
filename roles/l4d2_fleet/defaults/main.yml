@@ -11,6 +11,11 @@ tickrate: 100
 maxplayers: 32
 public: 1                        # 1 = relax sv_pure so custom client files are allowed
 
+# Admins seeded into admins_simple.ini (the in-game !admin plugin still adds more at runtime).
+# flags: z=root  c=kick  d=ban  e=unban  f=slay  m=rcon ; prefix with immunity e.g. "99:z"
+admins:
+  - { steamid: "STEAM_1:1:68210434", flags: "99:z" }
+
 # Host
 steam_user: steam
 install_dir: /home/steam/l4d2

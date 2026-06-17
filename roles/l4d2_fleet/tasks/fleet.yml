@@ -22,6 +22,41 @@
     - { key: sv_steamgroup_exclusive, value: "0" }
   when: public | int == 1
 
+- name: server.cfg — auto-load ZoneMod on first connection
+  ansible.builtin.lineinfile:
+    path: "{{ install_dir }}/left4dead2/cfg/server.cfg"
+    regexp: "^{{ item.key }} "
+    line: "{{ item.key }} {{ item.value }}"
+  loop:
+    - { key: confogl_match_autoload, value: "1" }
+    - { key: confogl_match_autoconfig, value: '"zonemod"' }
+
+- name: Seed server admins (admins_simple.ini)
+  ansible.builtin.lineinfile:
+    path: "{{ install_dir }}/left4dead2/addons/sourcemod/configs/admins_simple.ini"
+    regexp: '^"{{ item.steamid }}"'
+    line: '"{{ item.steamid }}" "{{ item.flags }}"'
+    owner: "{{ steam_user }}"
+    group: "{{ steam_user }}"
+  loop: "{{ admins }}"
+  when: admins | length > 0
+
+- name: Install custom SourceMod plugin (compiled)
+  ansible.builtin.copy:
+    src: custom-plugins/tcn_admin.smx
+    dest: "{{ install_dir }}/left4dead2/addons/sourcemod/plugins/tcn_admin.smx"
+    owner: "{{ steam_user }}"
+    group: "{{ steam_user }}"
+    mode: "0644"
+
+- name: Install custom plugin source
+  ansible.builtin.copy:
+    src: custom-plugins/scripting/tcn_admin.sp
+    dest: "{{ install_dir }}/left4dead2/addons/sourcemod/scripting/tcn_admin.sp"
+    owner: "{{ steam_user }}"
+    group: "{{ steam_user }}"
+    mode: "0644"
+
 - name: Create fleet directories
   ansible.builtin.file:
     path: "{{ item }}"
