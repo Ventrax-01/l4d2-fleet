@@ -19,8 +19,17 @@
   loop:
     - { key: sv_pure, value: "0" }
     - { key: sv_pure_kick_clients, value: "0" }
-    - { key: sv_steamgroup_exclusive, value: "0" }
   when: public | int == 1
+
+- name: server.cfg — Steam group listing
+  ansible.builtin.lineinfile:
+    path: "{{ install_dir }}/left4dead2/cfg/server.cfg"
+    regexp: "^{{ item.key }} "
+    line: '{{ item.key }} "{{ item.value }}"'
+  loop:
+    - { key: sv_steamgroup, value: "{{ steam_group }}" }
+    - { key: sv_steamgroup_exclusive, value: "{{ steam_group_exclusive }}" }
+  when: steam_group | length > 0
 
 - name: server.cfg — auto-load ZoneMod on first connection
   ansible.builtin.lineinfile:

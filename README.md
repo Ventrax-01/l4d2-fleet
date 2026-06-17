@@ -100,6 +100,8 @@ Override anything from `roles/l4d2_fleet/defaults/main.yml` in `group_vars/all.y
 | `tickrate`        | `100`                | Server tickrate.                                        |
 | `maxplayers`      | `32`                 | Slot count per server.                                  |
 | `public`          | `1`                  | Relax `sv_pure` so players with custom files can join.  |
+| `steam_group`     | *(empty)*            | Steam group ID(s) to list the servers under; empty = none.|
+| `steam_group_exclusive` | `0`            | `1` = only members of `steam_group` can connect.        |
 | `admins`          | *(one root admin)*   | List seeded into `admins_simple.ini` — see below.       |
 | `steam_user`      | `steam`              | Account that owns and runs the servers.                 |
 | `install_dir`     | `/home/steam/l4d2`   | Shared game install.                                    |
