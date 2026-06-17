@@ -70,6 +70,8 @@
   ansible.builtin.template:
     src: fleet.env.j2
     dest: /etc/l4d2-fleet/fleet.env
+    owner: "{{ steam_user }}"
+    group: "{{ steam_user }}"
     mode: "0640"
 
 - name: Install the launcher
