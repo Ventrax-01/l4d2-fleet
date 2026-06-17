@@ -8,6 +8,10 @@ I put this together to host a small pool of competitive servers at home without
 hand-configuring each one. Adding a server means bumping a number — the port, name
 and config are generated.
 
+![Grafana dashboard for the fleet](docs/images/dashboard.png)
+
+*The bundled Grafana dashboard: fleet overview, per-server CPU/RAM, host health and uptime.*
+
 ## What it does
 
 - Installs the L4D2 dedicated server through SteamCMD and drops in
