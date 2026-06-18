@@ -10,6 +10,10 @@
 base_name: "My ZoneMod Server"     # in-game name; the launcher appends " #N"
 server_count: 4
 
+# "versus" = ZoneMod competitive 4v4 (needs ~8 players; lone players can't play).
+# "coop"   = campaign with bots — friends can drop in and play with any number.
+gamemode: versus
+
 # Loopback only, but still keep the real one private.
 rcon_password: "change-me"
 

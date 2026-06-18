@@ -33,13 +33,13 @@
     - { key: sv_steamgroup_exclusive, value: "{{ steam_group_exclusive }}" }
   when: steam_group | length > 0
 
-- name: server.cfg — auto-load ZoneMod on first connection
+- name: server.cfg — ZoneMod autoload (versus only; coop leaves it off)
   ansible.builtin.lineinfile:
     path: "{{ install_dir }}/left4dead2/cfg/server.cfg"
     regexp: "^{{ item.key }} "
     line: "{{ item.key }} {{ item.value }}"
   loop:
-    - { key: confogl_match_autoload, value: "1" }
+    - { key: confogl_match_autoload, value: "{{ '1' if gamemode == 'versus' else '0' }}" }
     - { key: confogl_match_autoconfig, value: '"zonemod"' }
 
 - name: Seed server admins (admins_simple.ini)
