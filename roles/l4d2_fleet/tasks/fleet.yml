@@ -19,6 +19,8 @@
   loop:
     - { key: sv_pure, value: "0" }
     - { key: sv_pure_kick_clients, value: "0" }
+    # ZoneMod ships sv_steamgroup_exclusive 1 (group-only when empty) — open it up
+    - { key: sv_steamgroup_exclusive, value: "0" }
   when: public | int == 1
 
 - name: server.cfg — Steam group listing
