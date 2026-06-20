@@ -8,3 +8,7 @@ group_vars/all.yml
 .ansible/
 # Local game files (downloaded at provision time)
 left4dead2/
+
+# Python bytecode
+__pycache__/
+*.pyc
