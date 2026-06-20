@@ -79,14 +79,20 @@ def systemd_stats(inst: int):
     map changes — unlike the A2S `l4d2_up`, which blips while srcds reloads a map.
     """
     try:
+        # systemctl emits properties in its own order (not the -p order), so parse
+        # by key rather than position.
         out = subprocess.run(
             ["/usr/bin/systemctl", "show", "l4d2@%d.service" % inst,
-             "-p", "MemoryCurrent", "-p", "CPUUsageNSec", "-p", "ActiveState", "--value"],
+             "-p", "MemoryCurrent", "-p", "CPUUsageNSec", "-p", "ActiveState"],
             capture_output=True, text=True, timeout=3,
-        ).stdout.splitlines()
-        mem = int(out[0]) if len(out) > 0 and out[0].isdigit() else 0
-        cpu = int(out[1]) / 1e9 if len(out) > 1 and out[1].isdigit() else 0.0
-        active = 1 if len(out) > 2 and out[2] == "active" else 0
+        ).stdout
+        d = {}
+        for line in out.splitlines():
+            k, _, v = line.partition("=")
+            d[k] = v
+        mem = int(d["MemoryCurrent"]) if d.get("MemoryCurrent", "").isdigit() else 0
+        cpu = int(d["CPUUsageNSec"]) / 1e9 if d.get("CPUUsageNSec", "").isdigit() else 0.0
+        active = 1 if d.get("ActiveState") == "active" else 0
         return mem, cpu, active
     except Exception:
         return 0, 0.0, 0
