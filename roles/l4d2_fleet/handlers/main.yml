@@ -8,6 +8,11 @@
     name: prometheus
     state: restarted
 
+- name: restart l4d2-exporter
+  ansible.builtin.systemd:
+    name: l4d2-exporter
+    state: restarted
+
 - name: restart grafana
   ansible.builtin.systemd:
     name: grafana-server

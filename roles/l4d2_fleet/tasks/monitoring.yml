@@ -12,6 +12,7 @@
     src: l4d2_exporter.py
     dest: /opt/l4d2-fleet/l4d2_exporter.py
     mode: "0755"
+  notify: restart l4d2-exporter
 
 - name: Install the L4D2 exporter service
   ansible.builtin.copy:

@@ -3,7 +3,8 @@
 
 Exposes, per instance (labelled by ``instance`` and ``port``):
 
-    l4d2_up                 1 if the server answered A2S, else 0
+    l4d2_up                 1 if the server answered A2S, else 0 (blips on map change)
+    l4d2_service_up         1 if the systemd unit is active (stable across map changes)
     l4d2_players            current player count
     l4d2_max_players        slot count
     l4d2_bots               bot count
@@ -72,23 +73,28 @@ def query(port: int) -> dict:
 
 
 def systemd_stats(inst: int):
-    """(memory_bytes, cpu_seconds) for l4d2@<inst>.service from systemd accounting."""
+    """(memory_bytes, cpu_seconds, service_up) for l4d2@<inst>.service from systemd.
+
+    service_up reflects the unit's ActiveState (1 = active), so it stays up across
+    map changes — unlike the A2S `l4d2_up`, which blips while srcds reloads a map.
+    """
     try:
         out = subprocess.run(
             ["/usr/bin/systemctl", "show", "l4d2@%d.service" % inst,
-             "-p", "MemoryCurrent", "-p", "CPUUsageNSec", "--value"],
+             "-p", "MemoryCurrent", "-p", "CPUUsageNSec", "-p", "ActiveState", "--value"],
             capture_output=True, text=True, timeout=3,
-        ).stdout.split()
+        ).stdout.splitlines()
         mem = int(out[0]) if len(out) > 0 and out[0].isdigit() else 0
         cpu = int(out[1]) / 1e9 if len(out) > 1 and out[1].isdigit() else 0.0
-        return mem, cpu
+        active = 1 if len(out) > 2 and out[2] == "active" else 0
+        return mem, cpu, active
     except Exception:
-        return 0, 0.0
+        return 0, 0.0, 0
 
 
 class MetricsHandler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):  # noqa: N802
-        up, players, maxp, bots, infos, mem, cpu = [], [], [], [], [], [], []
+        up, players, maxp, bots, infos, mem, cpu, svc = [], [], [], [], [], [], [], []
         for inst, port in sorted(SERVERS.items()):
             lbl = 'instance="%d",port="%d"' % (inst, port)
             m = query(port)
@@ -99,11 +105,13 @@ class MetricsHandler(http.server.BaseHTTPRequestHandler):
                 bots.append("l4d2_bots{%s} %d" % (lbl, m["bots"]))
                 safe_map = m["map"].replace("\\", "").replace('"', "")
                 infos.append('l4d2_map_info{%s,map="%s"} 1' % (lbl, safe_map))
-            mbytes, cpusecs = systemd_stats(inst)
+            mbytes, cpusecs, active = systemd_stats(inst)
             mem.append("l4d2_memory_bytes{%s} %d" % (lbl, mbytes))
             cpu.append("l4d2_cpu_seconds_total{%s} %.3f" % (lbl, cpusecs))
+            svc.append("l4d2_service_up{%s} %d" % (lbl, active))
         body = "\n".join(
             ["# TYPE l4d2_up gauge"] + up
+            + ["# TYPE l4d2_service_up gauge"] + svc
             + ["# TYPE l4d2_players gauge"] + players
             + ["# TYPE l4d2_max_players gauge"] + maxp
             + ["# TYPE l4d2_bots gauge"] + bots
