@@ -42,6 +42,19 @@
     - { key: confogl_match_autoload, value: "{{ '1' if gamemode == 'versus' else '0' }}" }
     - { key: confogl_match_autoconfig, value: '"zonemod"' }
 
+- name: server.cfg — enable logging so in-game chat reaches the dashboard
+  # sv_logecho echoes log events (incl. `"name<..>" say "msg"`) to stdout -> journald
+  # -> Loki, which the Grafana chat panel parses. mp_logdetail 0 keeps it from
+  # logging per-hit damage spam.
+  ansible.builtin.lineinfile:
+    path: "{{ install_dir }}/left4dead2/cfg/server.cfg"
+    regexp: "^{{ item.key }} "
+    line: "{{ item.key }} {{ item.value }}"
+  loop:
+    - { key: sv_logecho, value: "1" }
+    - { key: mp_logdetail, value: "0" }
+    - { key: log, value: "on" }
+
 - name: Seed server admins (admins_simple.ini)
   ansible.builtin.lineinfile:
     path: "{{ install_dir }}/left4dead2/addons/sourcemod/configs/admins_simple.ini"
