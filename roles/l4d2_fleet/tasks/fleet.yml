@@ -42,10 +42,11 @@
     - { key: confogl_match_autoload, value: "{{ '1' if gamemode == 'versus' else '0' }}" }
     - { key: confogl_match_autoconfig, value: '"zonemod"' }
 
-- name: server.cfg — keep the verbose log echo off (chat is captured by chat_logger)
+- name: server.cfg — keep the verbose log echo off
   # This server's competitive plugins log every player command; echoing the log to the
-  # console (sv_logecho 1) floods journald/Loki. The chat_logger plugin emits chat as a
-  # tagged [CHAT] console line instead, so keep the echo off.
+  # console (sv_logecho 1) floods journald/Loki. Chat is captured separately by the
+  # chat_logger plugin (which writes a clean per-server file Promtail tails), so there's
+  # no reason to echo the log — keep it off.
   ansible.builtin.lineinfile:
     path: "{{ install_dir }}/left4dead2/cfg/server.cfg"
     regexp: "^{{ item.key }} "
@@ -103,6 +104,16 @@
   loop:
     - /opt/l4d2-fleet
     - /etc/l4d2-fleet
+
+- name: Create the chat log directory (chat_logger writes here; promtail reads it)
+  # Outside /home/steam (0750) so the promtail user can read the per-server chat files.
+  # Owned by the server user (which writes the files), world-readable (0755 + UMask 0022).
+  ansible.builtin.file:
+    path: /var/log/l4d2-fleet
+    state: directory
+    owner: "{{ steam_user }}"
+    group: "{{ steam_user }}"
+    mode: "0755"
 
 - name: Install fleet configuration
   ansible.builtin.template:
