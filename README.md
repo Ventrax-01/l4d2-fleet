@@ -155,11 +155,12 @@ Three small SourceMod plugins ship with the fleet — source and compiled `.smx`
   by reloading the map, so it doesn't keep spinning its main loop at `fps_max 0` / ~20% CPU
   after a match. It only acts with zero humans, so it never disturbs a live game.
 - **`chat_logger`** — writes in-game player chat to a dedicated per-server file
-  (`/var/log/l4d2-fleet/chat-<port>.log`) that Promtail tails into Loki, feeding the
+  (`addons/sourcemod/logs/chat/chat-<port>.log`) that Promtail tails into Loki, feeding the
   dashboard's **Game chat** panel. It writes a file rather than printing to the console because
-  SourceMod console output doesn't reach this headless server's journald; a dedicated file is
-  also zero-noise, so the panel needs no filtering. (Server/RCON `say` isn't captured — the
-  engine doesn't route it through SourceMod's command listener.)
+  SourceMod console output doesn't reach this headless server's journald; the file lives in the
+  game tree because SourceMod can only write there, and Promtail reads it by being in the
+  server's group. A dedicated file is also zero-noise, so the panel needs no filtering.
+  (Server/RCON `say` isn't captured — the engine doesn't route it through the chat hooks.)
 
 ## Admin management
 

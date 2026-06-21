@@ -4,72 +4,93 @@
 #pragma newdecls required
 
 // Player chat is written to a dedicated per-server file
-// (/var/log/l4d2-fleet/chat-<port>.log) which Promtail tails into Loki for the Grafana
-// chat panel. We write a file instead of PrintToServer because SourceMod console output
-// does NOT reach the headless srcds stdout/journald on this engine build (Facepunch
-// garrysmod-issues #2343 — engine Msg does, plugin prints don't). File I/O bypasses
-// stdout and is reliable, and a dedicated file is zero-noise so the panel needs no
-// filtering. The log dir lives outside /home/steam (which is 0750) so the separate
-// promtail user can read it. (Server/RCON `say` is NOT captured: the engine doesn't route
-// console-originated say through SourceMod's command listener — only real player chat.)
+// (addons/sourcemod/logs/chat/chat-<port>.log) which Promtail tails into Loki for the
+// Grafana chat panel. We write a file instead of PrintToServer because SourceMod console
+// output does NOT reach the headless srcds stdout/journald on this engine build (Facepunch
+// garrysmod-issues #2343). The path stays inside the game dir because SourceMod's OpenFile
+// can only write there (absolute paths like /var/log silently fail); Promtail reads it by
+// being a member of the server's group. Both the OnClientSayCommand_Post forward and a say
+// command listener are hooked (different builds route player chat through one or the other),
+// de-duplicated so a message logs exactly once. (Server/RCON `say` is not captured — the
+// engine doesn't route console-origin say through either path.)
 
 public Plugin myinfo =
 {
     name        = "Chat Logger",
     author      = "Luciano Giraldo",
     description = "Writes player chat to a per-server log file for aggregation (Loki/Grafana).",
-    version     = "2.0.0",
+    version     = "2.1.0",
     url         = ""
 };
 
 int g_port;
+char g_lastKey[320];
 
-public void OnPluginStart()
+static void WriteChat(int client, const char[] command, const char[] rawmsg)
 {
-    AddCommandListener(OnSay, "say");
-    AddCommandListener(OnSay, "say_team");
-}
-
-public Action OnSay(int client, const char[] command, int argc)
-{
-    // Only real players: the engine does NOT route server console / RCON `say`
-    // through the command-listener system, so those can't be caught here.
+    // Only real players: server console / RCON say doesn't reach these hooks anyway.
     if (client < 1 || IsFakeClient(client))
-        return Plugin_Continue;
+        return;
 
     char msg[256];
-    GetCmdArgString(msg, sizeof(msg));
+    strcopy(msg, sizeof(msg), rawmsg);
     StripQuotes(msg);
     TrimString(msg);
     if (msg[0] == '\0')
-        return Plugin_Continue;
+        return;
 
-    // hostport isn't reliably set at plugin load, so resolve it lazily on first chat.
+    // De-dup: both hooks can fire for the same message in the same frame. Same
+    // client + game time + text => log once.
+    char key[320];
+    Format(key, sizeof(key), "%d|%.2f|%s", client, GetGameTime(), msg);
+    if (StrEqual(key, g_lastKey))
+        return;
+    strcopy(g_lastKey, sizeof(g_lastKey), key);
+
     if (g_port == 0)
     {
-        ConVar cvPort = FindConVar("hostport");
-        if (cvPort != null)
-            g_port = cvPort.IntValue;
+        ConVar cv = FindConVar("hostport");
+        if (cv != null) g_port = cv.IntValue;
     }
 
     char name[MAX_NAME_LENGTH];
     GetClientName(client, name, sizeof(name));
 
     char path[PLATFORM_MAX_PATH];
-    // Absolute path (BuildPath strips the file:// prefix and uses the rest verbatim): a
-    // world-readable dir outside /home/steam (0750) so Promtail can read it directly.
-    BuildPath(Path_SM, path, sizeof(path), "file:///var/log/l4d2-fleet/chat-%d.log", g_port);
+    BuildPath(Path_SM, path, sizeof(path), "logs/chat/chat-%d.log", g_port);
 
     // Open/append/close per line: chat is low-volume, so this is cheap and avoids any
-    // flush/buffering concerns and survives logrotate. Lead with the Unix epoch so
-    // Promtail can stamp the real chat time on ingest.
+    // flush/buffering concern. Lead with the Unix epoch so Promtail stamps the real time.
     File fh = OpenFile(path, "a");
     if (fh != null)
     {
-        bool team = StrEqual(command, "say_team", false);
-        fh.WriteLine("%d %s %s: %s", GetTime(), team ? "(team)" : "(all)", name, msg);
+        fh.WriteLine("%d %s %s: %s", GetTime(), StrEqual(command, "say_team", false) ? "(team)" : "(all)", name, msg);
         delete fh;
     }
+}
 
+public void OnPluginStart()
+{
+    AddCommandListener(OnSayListener, "say");
+    AddCommandListener(OnSayListener, "say_team");
+
+    // Ensure the chat dir exists (Ansible also creates it). 493 == 0o755; SourcePawn has no
+    // octal literals, so 0755 would be read as decimal 755 and yield broken permissions.
+    char dir[PLATFORM_MAX_PATH];
+    BuildPath(Path_SM, dir, sizeof(dir), "logs/chat");
+    if (!DirExists(dir))
+        CreateDirectory(dir, 493);
+}
+
+public void OnClientSayCommand_Post(int client, const char[] command, const char[] sArgs)
+{
+    WriteChat(client, command, sArgs);
+}
+
+public Action OnSayListener(int client, const char[] command, int argc)
+{
+    char msg[256];
+    GetCmdArgString(msg, sizeof(msg));
+    WriteChat(client, command, msg);
     return Plugin_Continue; // never block chat
 }

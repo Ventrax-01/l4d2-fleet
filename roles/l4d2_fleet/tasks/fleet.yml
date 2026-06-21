@@ -106,10 +106,10 @@
     - /etc/l4d2-fleet
 
 - name: Create the chat log directory (chat_logger writes here; promtail reads it)
-  # Outside /home/steam (0750) so the promtail user can read the per-server chat files.
-  # Owned by the server user (which writes the files), world-readable (0755 + UMask 0022).
+  # Inside the game tree because SourceMod's OpenFile can only write under the game dir.
+  # 0755 + group {{ steam_user }} so promtail (added to that group) can read the files.
   ansible.builtin.file:
-    path: /var/log/l4d2-fleet
+    path: "{{ install_dir }}/left4dead2/addons/sourcemod/logs/chat"
     state: directory
     owner: "{{ steam_user }}"
     group: "{{ steam_user }}"
