@@ -144,7 +144,7 @@ metrics for Prometheus, e.g. `l4d2_players{instance="3",port="6035"} 4`.
 
 ## Admin management
 
-The fleet bundles a small SourceMod plugin — `tcn_admin`, source in
+The fleet bundles a small SourceMod plugin — `admin_manager`, source in
 `roles/l4d2_fleet/files/custom-plugins/scripting/` — that lets a root admin manage
 access straight from chat:
 
@@ -212,7 +212,7 @@ l4d2-fleet/
     └── files/
         ├── l4d2-run.sh             # launcher
         ├── l4d2_exporter.py        # A2S → Prometheus exporter
-        ├── custom-plugins/         # tcn_admin (.smx + source)
+        ├── custom-plugins/         # admin_manager + idle_hibernate (.smx + source)
         └── monitoring/             # Prometheus scrape job + Grafana provisioning
 ```
 
@@ -229,6 +229,11 @@ l4d2-fleet/
   an empty server looks like plain versus until someone joins.
 - `fleet.env` holds the RCON password and is read by the launcher as `steam`, so it's
   installed `steam:steam 0640` — readable by the service, not world-readable.
+- ZoneMod sets `fps_max 0`, and an empty L4D2 server only stops spinning the main loop
+  when the engine *hibernates*. After a match the leftover state can suppress hibernation,
+  so the empty box runs at 900+ fps / ~20% of a core until it eventually settles. The
+  bundled `idle_hibernate` plugin forces a clean map reload once the last human leaves, so
+  it hibernates immediately — without capping `fps_max` during live matches.
 
 ## License
 

@@ -65,21 +65,35 @@
   loop: "{{ admins }}"
   when: admins | length > 0
 
-- name: Install custom SourceMod plugin (compiled)
-  ansible.builtin.copy:
-    src: custom-plugins/tcn_admin.smx
-    dest: "{{ install_dir }}/left4dead2/addons/sourcemod/plugins/tcn_admin.smx"
-    owner: "{{ steam_user }}"
-    group: "{{ steam_user }}"
-    mode: "0644"
+- name: Remove the old tcn_admin plugin (renamed to admin_manager)
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "{{ install_dir }}/left4dead2/addons/sourcemod/plugins/tcn_admin.smx"
+    - "{{ install_dir }}/left4dead2/addons/sourcemod/scripting/tcn_admin.sp"
 
-- name: Install custom plugin source
+- name: Install custom SourceMod plugins (compiled)
   ansible.builtin.copy:
-    src: custom-plugins/scripting/tcn_admin.sp
-    dest: "{{ install_dir }}/left4dead2/addons/sourcemod/scripting/tcn_admin.sp"
+    src: "custom-plugins/{{ item }}"
+    dest: "{{ install_dir }}/left4dead2/addons/sourcemod/plugins/{{ item }}"
     owner: "{{ steam_user }}"
     group: "{{ steam_user }}"
     mode: "0644"
+  loop:
+    - admin_manager.smx
+    - idle_hibernate.smx
+
+- name: Install custom plugin sources
+  ansible.builtin.copy:
+    src: "custom-plugins/scripting/{{ item }}"
+    dest: "{{ install_dir }}/left4dead2/addons/sourcemod/scripting/{{ item }}"
+    owner: "{{ steam_user }}"
+    group: "{{ steam_user }}"
+    mode: "0644"
+  loop:
+    - admin_manager.sp
+    - idle_hibernate.sp
 
 - name: Create fleet directories
   ansible.builtin.file:

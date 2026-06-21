@@ -8,8 +8,8 @@
 
 public Plugin myinfo =
 {
-    name        = "TCN Admin Manager",
-    author      = "TCN",
+    name        = "Admin Manager",
+    author      = "Luciano Giraldo",
     description = "Gestion de admins in-game: !admin add/delete/list/help",
     version     = "2.0.0",
     url         = ""
