@@ -42,18 +42,16 @@
     - { key: confogl_match_autoload, value: "{{ '1' if gamemode == 'versus' else '0' }}" }
     - { key: confogl_match_autoconfig, value: '"zonemod"' }
 
-- name: server.cfg — enable logging so in-game chat reaches the dashboard
-  # sv_logecho echoes log events (incl. `"name<..>" say "msg"`) to stdout -> journald
-  # -> Loki, which the Grafana chat panel parses. mp_logdetail 0 keeps it from
-  # logging per-hit damage spam.
+- name: server.cfg — keep the verbose log echo off (chat is captured by chat_logger)
+  # This server's competitive plugins log every player command; echoing the log to the
+  # console (sv_logecho 1) floods journald/Loki. The chat_logger plugin emits chat as a
+  # tagged [CHAT] console line instead, so keep the echo off.
   ansible.builtin.lineinfile:
     path: "{{ install_dir }}/left4dead2/cfg/server.cfg"
     regexp: "^{{ item.key }} "
     line: "{{ item.key }} {{ item.value }}"
   loop:
-    - { key: sv_logecho, value: "1" }
-    - { key: mp_logdetail, value: "0" }
-    - { key: log, value: "on" }
+    - { key: sv_logecho, value: "0" }
 
 - name: Seed server admins (admins_simple.ini)
   ansible.builtin.lineinfile:
@@ -83,6 +81,7 @@
   loop:
     - admin_manager.smx
     - idle_hibernate.smx
+    - chat_logger.smx
 
 - name: Install custom plugin sources
   ansible.builtin.copy:
@@ -94,6 +93,7 @@
   loop:
     - admin_manager.sp
     - idle_hibernate.sp
+    - chat_logger.sp
 
 - name: Create fleet directories
   ansible.builtin.file:

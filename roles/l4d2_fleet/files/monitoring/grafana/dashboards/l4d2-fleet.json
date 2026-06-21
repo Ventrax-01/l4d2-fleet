@@ -126,9 +126,9 @@
 
     { "id": 106, "type": "row", "title": "Game chat", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 53 } },
 
-    { "id": 51, "type": "logs", "title": "Game chat (in-game say)", "gridPos": { "h": 12, "w": 24, "x": 0, "y": 54 },
+    { "id": 51, "type": "logs", "title": "Game chat", "gridPos": { "h": 12, "w": 24, "x": 0, "y": 54 },
       "datasource": { "type": "loki", "uid": "loki" },
-      "targets": [ { "refId": "A", "expr": "{job=\"l4d2\", instance=~\"$server\"} |~ `\" say` | regexp `\"(?P<player>.+?)<\\d+><[^>]*><[^>]*>\" say(?:_team)? \"(?P<msg>.*)\"` | line_format `#{{.instance}} {{.player}}: {{.msg}}`" } ],
+      "targets": [ { "refId": "A", "expr": "{job=\"l4d2\", instance=~\"$server\"} |= `[CHAT]` | regexp `\\[CHAT\\](?P<chat>.*)` | line_format `#{{.instance}}{{.chat}}`" } ],
       "options": { "showTime": true, "showLabels": false, "wrapLogMessage": true, "prettifyLogMessage": false, "enableLogDetails": true, "dedupStrategy": "none", "sortOrder": "Descending" } }
   ]
 }

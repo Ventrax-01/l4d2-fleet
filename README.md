@@ -199,6 +199,10 @@ both its metrics and its logs — and it works for however many servers you run,
 keyed on the label, not a fixed list. Query in Grafana's Explore: `{job="l4d2"}` for the
 whole fleet, `{job="l4d2", instance="3"}` for one.
 
+There's also a **Game chat** row. Isolating chat from a competitive server's very noisy
+console by filtering is hopeless, so the `chat_logger` plugin echoes only player chat with
+a `[CHAT]` tag, and the panel matches that tag exactly (`{job="l4d2"} |= "[CHAT]"`).
+
 ## Project layout
 
 ```
@@ -213,7 +217,7 @@ l4d2-fleet/
     └── files/
         ├── l4d2-run.sh             # launcher
         ├── l4d2_exporter.py        # A2S → Prometheus exporter
-        ├── custom-plugins/         # admin_manager + idle_hibernate (.smx + source)
+        ├── custom-plugins/         # admin_manager + idle_hibernate + chat_logger (.smx + source)
         └── monitoring/             # Prometheus scrape job + Grafana provisioning
 ```
 
