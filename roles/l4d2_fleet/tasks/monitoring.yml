@@ -52,6 +52,14 @@
     update_cache: true
     state: present
 
+- name: Set the Grafana HTTP port
+  ansible.builtin.lineinfile:
+    path: /etc/grafana/grafana.ini
+    regexp: '^;?http_port ='
+    line: "http_port = {{ grafana_port }}"
+    insertafter: '^\[server\]'
+  notify: restart grafana
+
 - name: Provision the Grafana data source
   ansible.builtin.copy:
     src: monitoring/grafana/datasources/prometheus.yml

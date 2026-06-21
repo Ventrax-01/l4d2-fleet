@@ -110,6 +110,7 @@ variables you'll actually touch:
 | `game_ip`         | *(auto)*             | A2S target for the exporter; empty = auto-detect.       |
 | `rcon_password`   | `change-me`          | Loopback only. Set the real one in your gitignored `group_vars/all.yml`. |
 | `with_monitoring` | `true`               | Install and wire up Prometheus/Grafana.                 |
+| `grafana_port`    | `3000`               | Grafana HTTP port. Keep it on the LAN unless you really mean to expose it. |
 | `with_logs`       | `true`               | Ship journald logs to Loki and show them in Grafana.    |
 | `loki_retention`  | `168h`               | How long Loki keeps the logs.                           |
 

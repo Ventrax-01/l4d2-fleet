@@ -31,6 +31,7 @@ rcon_password: "change-me"
 
 # Monitoring stack (Prometheus + node_exporter + Grafana)
 with_monitoring: true
+grafana_port: 3000               # Grafana HTTP port (keep on the LAN; only change if you know what you're exposing)
 
 # Logs: ship each server's journald output to Loki and show it in Grafana.
 # Label-driven, so it works for however many servers you run (no hardcoding).
