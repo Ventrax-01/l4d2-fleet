@@ -154,10 +154,10 @@ Three small SourceMod plugins ship with the fleet — source and compiled `.smx`
 - **`idle_hibernate`** — when the last human leaves, forces the (now empty) server to hibernate
   by reloading the map, so it doesn't keep spinning its main loop at `fps_max 0` / ~20% CPU
   after a match. It only acts with zero humans, so it never disturbs a live game.
-- **`chat_logger`** — echoes in-game chat (from players *and* the server console / RCON) to the
-  console with a unique `[CHAT]` tag. journald ships it to Loki and the dashboard's **Game chat**
-  panel matches that tag, so chat shows up cleanly without grepping it out of the very noisy
-  competitive logs.
+- **`chat_logger`** — echoes in-game player chat to the console with a unique `[CHAT]` tag.
+  journald ships it to Loki and the dashboard's **Game chat** panel matches that tag, so chat
+  shows up cleanly without grepping it out of the very noisy competitive logs. (Server/RCON
+  `say` isn't captured — the engine doesn't route it through SourceMod's command listener.)
 
 ## Admin management
 
