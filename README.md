@@ -154,10 +154,12 @@ Three small SourceMod plugins ship with the fleet — source and compiled `.smx`
 - **`idle_hibernate`** — when the last human leaves, forces the (now empty) server to hibernate
   by reloading the map, so it doesn't keep spinning its main loop at `fps_max 0` / ~20% CPU
   after a match. It only acts with zero humans, so it never disturbs a live game.
-- **`chat_logger`** — echoes in-game player chat to the console with a unique `[CHAT]` tag.
-  journald ships it to Loki and the dashboard's **Game chat** panel matches that tag, so chat
-  shows up cleanly without grepping it out of the very noisy competitive logs. (Server/RCON
-  `say` isn't captured — the engine doesn't route it through SourceMod's command listener.)
+- **`chat_logger`** — writes in-game player chat to a dedicated per-server file
+  (`/var/log/l4d2-fleet/chat-<port>.log`) that Promtail tails into Loki, feeding the
+  dashboard's **Game chat** panel. It writes a file rather than printing to the console because
+  SourceMod console output doesn't reach this headless server's journald; a dedicated file is
+  also zero-noise, so the panel needs no filtering. (Server/RCON `say` isn't captured — the
+  engine doesn't route it through SourceMod's command listener.)
 
 ## Admin management
 
@@ -216,8 +218,9 @@ keyed on the label, not a fixed list. Query in Grafana's Explore: `{job="l4d2"}`
 whole fleet, `{job="l4d2", instance="3"}` for one.
 
 There's also a **Game chat** row. Isolating chat from a competitive server's very noisy
-console by filtering is hopeless, so the `chat_logger` plugin echoes only player chat with
-a `[CHAT]` tag, and the panel matches that tag exactly (`{job="l4d2"} |= "[CHAT]"`).
+console by filtering is hopeless, so the `chat_logger` plugin writes player chat to its own
+per-server file, which Promtail ships to Loki under `job="l4d2_chat"` (one stream per server,
+keyed on the same `instance` label). The panel just reads that — clean chat, no filtering.
 
 ## Project layout
 

@@ -11,6 +11,8 @@ ExecStart=/opt/l4d2-fleet/l4d2-run.sh %i
 Restart=on-failure
 RestartSec=15
 KillSignal=SIGINT
+# Chat logs the server writes (/var/log/l4d2-fleet) must be readable by the promtail user.
+UMask=0022
 
 [Install]
 WantedBy=multi-user.target

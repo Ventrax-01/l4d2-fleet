@@ -31,3 +31,25 @@ scrape_configs:
         regex: 'l4d2@(\d+)\.service'
         target_label: instance
         replacement: '${1}'
+
+  # Game chat — the chat_logger plugin writes one clean line per player message to a
+  # per-server file (/var/log/l4d2-fleet/chat-<port>.log). One target per instance so each
+  # file carries the same `instance` label as the journald job above, keeping the Grafana
+  # $server filter working. The leading Unix epoch is parsed for the timestamp and dropped.
+  - job_name: l4d2_chat
+    static_configs:
+{% for n in range(1, server_count | int + 1) %}
+      - targets: [localhost]
+        labels:
+          job: l4d2_chat
+          instance: "{{ n }}"
+          __path__: /var/log/l4d2-fleet/chat-{{ (port_base | int) + n }}.log
+{% endfor %}
+    pipeline_stages:
+      - regex:
+          expression: '^(?P<epoch>\d+) (?P<chat>.*)$'
+      - timestamp:
+          source: epoch
+          format: Unix
+      - output:
+          source: chat
