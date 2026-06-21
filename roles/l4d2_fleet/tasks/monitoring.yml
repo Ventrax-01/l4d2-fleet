@@ -103,10 +103,12 @@
   when: with_logs | bool
   notify: restart journald
 
-- name: Let Promtail read the systemd journal
+- name: Let Promtail read the journal and the chat logs
+  # systemd-journal for the server logs; the server's group so it can traverse
+  # {{ install_dir }} (under /home/{{ steam_user }}, 0750) and read the chat_logger files.
   ansible.builtin.user:
     name: promtail
-    groups: systemd-journal
+    groups: "systemd-journal,{{ steam_user }}"
     append: true
   when: with_logs | bool
   notify: restart promtail
