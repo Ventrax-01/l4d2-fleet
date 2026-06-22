@@ -145,7 +145,7 @@ metrics for Prometheus, e.g. `l4d2_players{instance="3",port="6035"} 4`.
 
 ## Custom plugins
 
-Three small SourceMod plugins ship with the fleet — source and compiled `.smx` live in
+A few small SourceMod plugins ship with the fleet — source and compiled `.smx` live in
 `roles/l4d2_fleet/files/custom-plugins/`:
 
 - **`admin_manager`** — manage server admins from in-game chat (`!admin add/delete/list/help`),
@@ -161,6 +161,14 @@ Three small SourceMod plugins ship with the fleet — source and compiled `.smx`
   game tree because SourceMod can only write there, and Promtail reads it by being in the
   server's group. A dedicated file is also zero-noise, so the panel needs no filtering.
   (Server/RCON `say` isn't captured — the engine doesn't route it through the chat hooks.)
+
+It also ships a one-line patch to a ZoneMod plugin, `predictable_unloader`. ZoneMod runs
+`pred_unload_plugins` on every matchmode transition, which unloads *every* loaded plugin and
+relies on a refresh to reload them — that refresh races with ZoneMod's plugin load-lock, so the
+three plugins above get dropped during matches (chat goes uncaptured mid-game, etc.). The patch
+reserves them so the unloader skips them; everything else is unloaded exactly as before. The
+build process is the same — `spcomp` the `.sp`, commit the `.smx` — and the role installs it over
+ZoneMod's copy after the ZoneMod sync.
 
 ## Admin management
 
