@@ -3,71 +3,71 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-// When the last human leaves, an L4D2 server should drop into engine hibernation
-// (~10 fps). After a competitive match the leftover bot/Director/team state can
-// suppress that, so with ZoneMod's fleet-wide `fps_max 0` the empty server spins
-// its main loop at 900+ fps (~20% of a core) until hibernation eventually engages.
+// An empty L4D2 server should idle cheaply, but ZoneMod sets fleet-wide `fps_max 0`
+// (uncapped) and after a match the leftover bot/Director state can stop the engine from
+// hibernating, so the empty box spins its main loop at 900+ fps (~20% of a core). Forcing
+// hibernation via a map reload would fix that, but on a ZoneMod server a `changelevel`
+// triggers confogl's pred_unload, which churns every plugin (and breaks !match). So instead
+// this plugin just CAPS fps_max while the server is empty — cheap, no side effects — and
+// restores `fps_max 0` the instant a human joins, so live matches are untouched.
 //
-// This plugin forces the clean transition: a short while after the last human
-// disconnects, with the server confirmed empty, it re-asserts hibernation and
-// reloads the current map. The map reload clears the residual state, so the empty
-// server hibernates immediately. It never fires while humans are connected, so it
-// leaves live matches (and `fps_max 0`) untouched.
+// (Filename kept as idle_hibernate for continuity; it no longer reloads the map.)
 
 #define EMPTY_DELAY 15.0   // seconds to wait after the last human leaves
+#define IDLE_FPS    30     // fps cap while empty (vs ZoneMod's uncapped fps_max 0)
 
-ConVar g_cvHibernate;
+ConVar g_cvFpsMax;
 Handle g_hTimer = null;
 
 public Plugin myinfo =
 {
-    name        = "Idle Hibernation Enforcer",
+    name        = "Idle FPS Cap",
     author      = "Luciano Giraldo",
-    description = "Forces an empty server to hibernate so it doesn't spin at fps_max 0 after a match.",
-    version     = "1.0.0",
+    description = "Caps fps_max while the server is empty so it doesn't spin at fps_max 0 after a match.",
+    version     = "2.0.0",
     url         = ""
 };
 
 public void OnPluginStart()
 {
-    g_cvHibernate = FindConVar("sv_hibernate_when_empty");
+    g_cvFpsMax = FindConVar("fps_max");
+
+    // If we load onto an already-empty server, cap right away.
+    if (g_cvFpsMax != null && HumanCount() == 0)
+        g_cvFpsMax.IntValue = IDLE_FPS;
 }
 
 public void OnClientPutInServer(int client)
 {
-    // A human is present again — cancel any pending empty-enforcement.
-    if (client > 0 && !IsFakeClient(client))
-    {
-        delete g_hTimer;
-        g_hTimer = null;
-    }
+    if (client < 1 || IsFakeClient(client))
+        return;
+
+    // A human is here — cancel any pending cap and uncap for play (ZoneMod wants fps_max 0).
+    delete g_hTimer;
+    g_hTimer = null;
+    if (g_cvFpsMax != null)
+        g_cvFpsMax.IntValue = 0;
 }
 
 public void OnClientDisconnect(int client)
 {
-    // Ignore bots: the map reload below churns bots, and reacting to that would
-    // loop. Only a *human* leaving can schedule the check.
+    // Ignore bots; only a human leaving can schedule the empty check.
     if (IsFakeClient(client))
         return;
 
     delete g_hTimer;
-    g_hTimer = CreateTimer(EMPTY_DELAY, Timer_EnforceIdle);
+    g_hTimer = CreateTimer(EMPTY_DELAY, Timer_CapIdle);
 }
 
-public Action Timer_EnforceIdle(Handle timer)
+public Action Timer_CapIdle(Handle timer)
 {
     g_hTimer = null;
 
     if (HumanCount() > 0)
-        return Plugin_Stop; // someone is (still) here — do nothing
+        return Plugin_Stop; // someone is (still) here
 
-    // Allow hibernation, then reload the map so the engine drops into it cleanly.
-    if (g_cvHibernate != null)
-        g_cvHibernate.IntValue = 1;
-
-    char map[PLATFORM_MAX_PATH];
-    GetCurrentMap(map, sizeof(map));
-    ServerCommand("changelevel %s", map);
+    if (g_cvFpsMax != null)
+        g_cvFpsMax.IntValue = IDLE_FPS;
 
     return Plugin_Stop;
 }

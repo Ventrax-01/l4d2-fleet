@@ -109,6 +109,32 @@
     - chat_logger.sp
     - predictable_unloader.sp
 
+# Custom banners — opt-in. The HTML files are gitignored (see motd_file/host_file
+# in defaults). Runs after the zonemod role so it overrides ZoneMod's defaults.
+- name: Install a custom MOTD (optional; HTML is gitignored)
+  ansible.builtin.copy:
+    src: "{{ motd_file }}"
+    dest: "{{ install_dir }}/left4dead2/{{ item }}"
+    owner: "{{ steam_user }}"
+    group: "{{ steam_user }}"
+    mode: "0644"
+  loop:
+    - motd.txt
+    - mymotd.txt
+  when: motd_file | length > 0
+
+- name: Install a custom host banner (optional; the smaller banner, gitignored)
+  ansible.builtin.copy:
+    src: "{{ host_file }}"
+    dest: "{{ install_dir }}/left4dead2/{{ item }}"
+    owner: "{{ steam_user }}"
+    group: "{{ steam_user }}"
+    mode: "0644"
+  loop:
+    - host.txt
+    - myhost.txt
+  when: host_file | length > 0
+
 - name: Create fleet directories
   ansible.builtin.file:
     path: "{{ item }}"

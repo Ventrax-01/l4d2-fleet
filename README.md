@@ -113,6 +113,8 @@ variables you'll actually touch:
 | `grafana_port`    | `3000`               | Grafana HTTP port. Keep it on the LAN unless you really mean to expose it. |
 | `with_logs`       | `true`               | Ship journald logs to Loki and show them in Grafana.    |
 | `loki_retention`  | `168h`               | How long Loki keeps the logs.                           |
+| `motd_file`       | *(empty)*            | Custom MOTD: a `<name>.local.html` in `roles/l4d2_fleet/files/` (gitignored); empty = ZoneMod default. |
+| `host_file`       | *(empty)*            | Custom smaller "host" banner — same idea as `motd_file`. |
 
 `admins` is a list of SteamID + flags:
 
@@ -151,9 +153,10 @@ A few small SourceMod plugins ship with the fleet — source and compiled `.smx`
 - **`admin_manager`** — manage server admins from in-game chat (`!admin add/delete/list/help`),
   root only. Edits `admins_simple.ini` and reloads the admin cache live (no restart). Commands
   are detailed under [Admin management](#admin-management).
-- **`idle_hibernate`** — when the last human leaves, forces the (now empty) server to hibernate
-  by reloading the map, so it doesn't keep spinning its main loop at `fps_max 0` / ~20% CPU
-  after a match. It only acts with zero humans, so it never disturbs a live game.
+- **`idle_hibernate`** — caps `fps_max` (to 30) while the server is empty so it doesn't spin its
+  main loop at ZoneMod's `fps_max 0` (~20% of a core) after a match, and restores `fps_max 0` the
+  instant a human joins. (It used to force hibernation with a map reload, but on ZoneMod a
+  `changelevel` triggers `pred_unload_plugins` and churns every plugin — capping fps avoids that.)
 - **`chat_logger`** — writes in-game player chat to a dedicated per-server file
   (`addons/sourcemod/logs/chat/chat-<port>.log`) that Promtail tails into Loki, feeding the
   dashboard's **Game chat** panel. It writes a file rather than printing to the console because

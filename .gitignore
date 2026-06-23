@@ -3,6 +3,8 @@
 group_vars/*secret*
 group_vars/all.yml
 *.pem
+# Custom MOTD / host banner content — per-deployment (copy from the .sample.html)
+roles/l4d2_fleet/files/*.local.html
 # Ansible retry/cache
 *.retry
 .ansible/
