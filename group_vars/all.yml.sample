@@ -22,3 +22,9 @@ rcon_password: "change-me"
 # player's SteamID with `status` in the console.
 admins:
   - { steamid: "STEAM_1:0:00000000", flags: "99:z" }
+
+# Custom banners (optional). Copy roles/l4d2_fleet/files/motd.sample.html to
+# <name>.local.html (gitignored), edit it, and point to it here. Leave empty to
+# keep ZoneMod's defaults. The host_file is the smaller banner.
+# motd_file: "motd.local.html"
+# host_file: "host.local.html"
