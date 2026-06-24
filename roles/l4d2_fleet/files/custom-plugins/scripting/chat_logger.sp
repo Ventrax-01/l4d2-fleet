@@ -19,7 +19,7 @@ public Plugin myinfo =
     name        = "Chat Logger",
     author      = "Luciano Giraldo",
     description = "Writes player chat to a per-server log file for aggregation (Loki/Grafana).",
-    version     = "2.1.0",
+    version     = "2.2.0",
     url         = ""
 };
 
@@ -82,9 +82,15 @@ public void OnPluginStart()
         CreateDirectory(dir, 493);
 }
 
-public void OnClientSayCommand_Post(int client, const char[] command, const char[] sArgs)
+// Non-Post forward: fires for EVERY plugin even when another plugin (a chat reformatter,
+// dead-chat handler, readyup, etc.) blocks the say with Plugin_Handled — the _Post version
+// is skipped when the say is blocked, which is why regular chat went uncaptured while
+// commands (which pass through) were logged. De-dup in WriteChat handles the overlap with
+// the command listener below. Never block chat ourselves.
+public Action OnClientSayCommand(int client, const char[] command, const char[] sArgs)
 {
     WriteChat(client, command, sArgs);
+    return Plugin_Continue;
 }
 
 public Action OnSayListener(int client, const char[] command, int argc)
